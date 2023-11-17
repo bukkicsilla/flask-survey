@@ -1,6 +1,6 @@
 #https://stackoverflow.com/questions/45412051/flask-debugtoolbar-importerror-no-module-named-flask-debugtoolbar
 
-from flask import Flask, request, render_template, redirect, flash
+from flask import Flask, request, render_template, redirect, flash, url_for
 
 from flask_debugtoolbar import DebugToolbarExtension
 from surveys import satisfaction_survey
@@ -13,6 +13,7 @@ app.config["DEBUG_TB_INTERCEPT_REDIRECTS"] = False
 debug = DebugToolbarExtension(app)
 
 responses = []
+done = {"done": False}
 survey_length = len(satisfaction_survey.questions)
 
 def wrong_url_redirect():
@@ -29,7 +30,7 @@ def go_home():
     }
     return render_template("home.html", survey=survey)
 
-@app.route("/questions/<int:id>")
+@app.route("/questions/<int:id>", methods=['GET', 'POST'])
 def show_question(id):
     if len(responses) < survey_length and id < survey_length:
         if len(responses) == id:
@@ -46,16 +47,24 @@ def show_question(id):
     if len(responses) < survey_length and id >= survey_length:
         return wrong_url_redirect()
     return redirect("/thankyou")
+    #return redirect(url_for('say_thankyou', id=id))
 
 
-@app.route("/answer")
+@app.route("/answer", methods=['POST'])
 def show_answer():
-    responses.append(request.args["answer"])
-    #print(responses)
-    id = int(request.args["id"]) + 1 
+    responses.append(request.form["answer"])
+    id = int(request.form["id"]) + 1 
     path = f"/questions/{id}"
     return redirect(path)
 
 @app.route("/thankyou")
 def say_thankyou():
+    if (done["done"]):
+        flash('Survay is finished.', 'warning')
+    done["done"] = True
+    
     return render_template("thankyou.html")
+
+#@app.route("/thankyou/<int:id>")
+#def say_thankyou(id):
+#    return render_template("thankyou.html")
