@@ -49,7 +49,7 @@ def show_question(id):
         else: #len(resonses) not equal to id
             return wrong_url_redirect(responses)
     if len(responses) < survey_length and id >= survey_length:  
-        return wrong_url_redirect()
+        return wrong_url_redirect(responses)
     return redirect("/thankyou")
     #return redirect(url_for('say_thankyou', id=id))
 
