@@ -1,6 +1,6 @@
 #https://stackoverflow.com/questions/45412051/flask-debugtoolbar-importerror-no-module-named-flask-debugtoolbar
 
-from flask import Flask, request, render_template, redirect, flash, url_for
+from flask import Flask, request, render_template, redirect, flash, session, url_for
 
 from flask_debugtoolbar import DebugToolbarExtension
 from surveys import satisfaction_survey
@@ -12,18 +12,21 @@ app.config["SECRET_KEY"] = "tarvos trigaranus"
 app.config["DEBUG_TB_INTERCEPT_REDIRECTS"] = False
 debug = DebugToolbarExtension(app)
 
-responses = []
+#responses = []
 done = {"done": False}
 survey_length = len(satisfaction_survey.questions)
 
-def wrong_url_redirect():
+'''For example, if the user has answered one survey question, but then tries to manually enter /questions/4 in the URL bar, you should redirect them to /questions/1.
+Once they’ve answered all of the questions, trying to access any of the question pages should redirect them to the thank you page.'''
+def wrong_url_redirect(responses):
     flash("You are trying to access an invalid question", 'warning')
     path = f"/questions/{len(responses)}"
     return redirect(path)
 
 @app.route("/")
 def go_home():
-    responses.clear()
+    #responses.clear()
+    session['responses'] = []
     survey = {
     "title": satisfaction_survey.title, 
     "instructions": satisfaction_survey.instructions
@@ -32,6 +35,7 @@ def go_home():
 
 @app.route("/questions/<int:id>", methods=['GET', 'POST'])
 def show_question(id):
+    responses = session.get('responses')
     if len(responses) < survey_length and id < survey_length:
         if len(responses) == id:
             current_question = satisfaction_survey.questions[id]
@@ -43,8 +47,8 @@ def show_question(id):
             }
             return render_template("question.html",  qa=qa)
         else: #len(resonses) not equal to id
-            return wrong_url_redirect()
-    if len(responses) < survey_length and id >= survey_length:
+            return wrong_url_redirect(responses)
+    if len(responses) < survey_length and id >= survey_length:  
         return wrong_url_redirect()
     return redirect("/thankyou")
     #return redirect(url_for('say_thankyou', id=id))
@@ -52,7 +56,11 @@ def show_question(id):
 
 @app.route("/answer", methods=['POST'])
 def show_answer():
-    responses.append(request.form["answer"])
+    answer = request.form["answer"]
+    #responses.append(answer)
+    responses = session['responses']
+    responses.append(answer)
+    session['responses'] = responses
     id = int(request.form["id"]) + 1 
     path = f"/questions/{id}"
     return redirect(path)
